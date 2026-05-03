@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio — Crypto Pulse</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="shared.css">
+<style>
+.port-hero {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 20px; padding: 2rem; margin-bottom: 1.5rem;
+  text-align: center; position: relative; overflow: hidden;
+}
+.port-hero::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at center, var(--glow), transparent 70%); pointer-events:none; }
+.port-total { font-family:var(--font-display); font-size:clamp(2rem,5vw,3.5rem); font-weight:900; color:var(--text); }
+.port-profit { color:var(--green); font-size:1rem; margin-top:0.3rem; }
+.port-badge { display:inline-block; background:rgba(34,197,94,0.1); color:var(--green); border:1px solid rgba(34,197,94,0.25); padding:0.25rem 0.75rem; border-radius:20px; font-size:0.8rem; font-weight:700; margin-left:0.5rem; }
+.port-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.5rem; }
+.main-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem; }
+.holdings-list { display:flex; flex-direction:column; gap:0.5rem; }
+.holding-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0.9rem 1rem; background:var(--bg3); border-radius:10px;
+  transition:all 0.25s;
+}
+.holding-row:hover { background:var(--card); transform:translateX(4px); }
+.hold-left { display:flex; align-items:center; gap:0.75rem; }
+.hold-avatar { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.72rem; color:white; flex-shrink:0; }
+.hold-name { font-weight:600; font-size:0.88rem; color:var(--text); }
+.hold-units { font-size:0.72rem; color:var(--text3); }
+.hold-right { text-align:right; }
+.hold-val { font-weight:700; font-family:var(--font-display); color:var(--text); font-size:0.92rem; }
+.hold-pct { font-size:0.72rem; color:var(--green); }
+.perf-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.5rem; }
+.perf-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.2rem; transition:all 0.3s; }
+.perf-card:hover { border-color:var(--accent); box-shadow:0 0 20px var(--glow); }
+.perf-lbl { font-size:0.75rem; color:var(--text3); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.4rem; }
+.perf-val { font-size:1.3rem; font-weight:700; font-family:var(--font-display); color:var(--text); }
+.perf-sub { font-size:0.75rem; margin-top:0.2rem; }
+
+@media(max-width:768px) {
+  .port-grid { grid-template-columns:1fr 1fr; }
+  .main-grid { grid-template-columns:1fr; }
+  .perf-grid { grid-template-columns:1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div></div>
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="logo.png" alt="Crypto Pulse" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Crypto Pulse</span>
+    </a>
+    <div class="nav-links" id="nav-links"></div>
+    <div class="nav-right">
+      <div class="theme-select-wrap">
+        <button class="theme-btn" onclick="toggleThemeDropdown()"><span class="theme-dot"></span> Theme ▾</button>
+        <div class="theme-dropdown" id="theme-dd"></div>
+      </div>
+      <button class="hamburger" onclick="toggleMobileMenu()"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+<div class="ticker-wrap" id="ticker-wrap" style="margin-top:64px"></div>
+
+<div class="page-wrapper">
+  <div class="main-content">
+    <div class="page-header reveal">
+      <div class="page-icon">💼</div>
+      <div>
+        <div class="page-title">Portfolio</div>
+        <div class="page-sub">Track your crypto investments</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:0.5rem">
+        <button class="btn btn-ghost" onclick="toggleView('overview')" id="btn-overview">Overview</button>
+        <button class="btn btn-ghost" onclick="toggleView('performance')" id="btn-perf">Performance</button>
+      </div>
+    </div>
+
+    <!-- PORTFOLIO HERO -->
+    <div class="port-hero reveal">
+      <div style="font-size:0.75rem;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.3rem">Total Portfolio Value</div>
+      <div class="port-total">$125,847.32 <span class="port-badge">▲ +22.9%</span></div>
+      <div class="port-profit">+$23,456.78 all time</div>
+    </div>
+
+    <!-- STAT GRID -->
+    <div class="port-grid reveal">
+      <div class="card stat-card"><div class="stat-label">Total Value</div><div class="stat-value" style="font-size:1.3rem">$125,847</div><div class="stat-change up">▲ +1.87%</div></div>
+      <div class="card stat-card"><div class="stat-label">Total Profit</div><div class="stat-value" style="font-size:1.3rem">$23,456</div><div class="stat-change up">▲ +22.9%</div></div>
+      <div class="card stat-card"><div class="stat-label">Best Performer</div><div class="stat-value" style="font-size:1.3rem">SOL</div><div class="stat-change up">▲ +49.1%</div></div>
+      <div class="card stat-card"><div class="stat-label">24h Change</div><div class="stat-value" style="font-size:1.3rem">$2,353</div><div class="stat-change up">▲ +1.87%</div></div>
+    </div>
+
+    <!-- OVERVIEW VIEW -->
+    <div id="view-overview">
+      <div class="main-grid">
+        <!-- DONUT CHART -->
+        <div class="card" style="padding:1.5rem">
+          <div class="section-title" style="margin-bottom:1.2rem">Asset Allocation</div>
+          <div class="donut-wrap">
+            <div style="width:200px;height:200px;flex-shrink:0">
+              <canvas id="donutChart"></canvas>
+            </div>
+            <div class="donut-legend" id="donut-legend"></div>
+          </div>
+        </div>
+
+        <!-- HOLDINGS -->
+        <div class="card" style="padding:1.5rem">
+          <div class="section-title" style="margin-bottom:1rem">Holdings</div>
+          <div class="holdings-list" id="holdings-list"></div>
+        </div>
+      </div>
+
+      <!-- PERFORMANCE CHART -->
+      <div class="card reveal" style="padding:1.5rem;margin-bottom:1.5rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+          <div class="section-title" style="margin-bottom:0">Portfolio Performance</div>
+          <div class="time-tabs" id="port-time-tabs" style="display:flex;gap:0.25rem"></div>
+        </div>
+        <div style="height:200px"><canvas id="perfChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- PERFORMANCE VIEW (hidden) -->
+    <div id="view-performance" style="display:none">
+      <div class="perf-grid reveal">
+        <div class="perf-card"><div class="perf-lbl">All Time Return</div><div class="perf-val">+$23,456</div><div class="perf-sub up">▲ +22.9%</div></div>
+        <div class="perf-card"><div class="perf-lbl">Best Month</div><div class="perf-val">+$8,230</div><div class="perf-sub" style="color:var(--text3)">March 2026</div></div>
+        <div class="perf-card"><div class="perf-lbl">Avg Monthly</div><div class="perf-val">+$1,954</div><div class="perf-sub up">▲ +1.87%</div></div>
+        <div class="perf-card"><div class="perf-lbl">Total Invested</div><div class="perf-val">$102,390</div><div class="perf-sub" style="color:var(--text3)">Cost basis</div></div>
+        <div class="perf-card"><div class="perf-lbl">Biggest Win</div><div class="perf-val">SOL</div><div class="perf-sub up">▲ +49.1%</div></div>
+        <div class="perf-card"><div class="perf-lbl">Active Positions</div><div class="perf-val">6</div><div class="perf-sub" style="color:var(--text3)">Coins</div></div>
+      </div>
+      <div class="card reveal" style="padding:1.5rem">
+        <div class="section-title" style="margin-bottom:1rem">Monthly Performance</div>
+        <div style="height:250px"><canvas id="monthChart"></canvas></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+document.getElementById('nav-links').innerHTML = buildNav('portfolio.html');
+document.getElementById('mobile-menu').innerHTML = buildNav('portfolio.html');
+document.getElementById('theme-dd').innerHTML = buildThemeDropdown();
+
+const liveCoins = startLivePrices(coins => { document.getElementById('ticker-wrap').innerHTML = buildTicker(coins); });
+document.getElementById('ticker-wrap').innerHTML = buildTicker(liveCoins);
+
+// HOLDINGS
+document.getElementById('holdings-list').innerHTML = PORTFOLIO.map(p => {
+  const coin = COINS.find(c=>c.id===p.id)||{};
+  return `<div class="holding-row">
+    <div class="hold-left">
+      <div class="hold-avatar" style="background:${p.color}">${coin.avatar||p.id.toUpperCase().slice(0,2)}</div>
+      <div><div class="hold-name">${coin.name||p.id.toUpperCase()}</div><div class="hold-units">${p.units} ${coin.sym||''}</div></div>
+    </div>
+    <div class="hold-right">
+      <div class="hold-val">${fmt(p.value)}</div>
+      <div class="hold-pct">▲ +${p.pct}%</div>
+    </div>
+  </div>`;
+}).join('');
+
+// DONUT
+document.getElementById('donut-legend').innerHTML = PORTFOLIO.map(p => {
+  const coin = COINS.find(c=>c.id===p.id)||{};
+  return `<div class="legend-item">
+    <div class="legend-left"><div class="legend-dot" style="background:${p.color}"></div>${coin.sym||p.id.toUpperCase()}</div>
+    <div class="legend-val">${fmt(p.value)}</div>
+  </div>`;
+}).join('');
+
+const donut = new Chart(document.getElementById('donutChart'), {
+  type:'doughnut',
+  data: { datasets:[{ data:PORTFOLIO.map(p=>p.value), backgroundColor:PORTFOLIO.map(p=>p.color), borderWidth:2, borderColor:'transparent', hoverOffset:8 }] },
+  options: { cutout:'70%', plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>`$${c.raw.toLocaleString()}`}} }, animation:{animateRotate:true,duration:1200} }
+});
+
+// PERF CHART
+const PTIMES = ['1M','3M','6M','1Y','ALL'];
+let activePortTime = '3M';
+document.getElementById('port-time-tabs').innerHTML = PTIMES.map(t => `<button class="time-tab${t===activePortTime?' active':''}" onclick="setPortTime('${t}')">${t}</button>`).join('');
+
+let perfChart;
+function buildPerfChart() {
+  const n = {M:30,'3M':90,'6M':180,Y:365,L:730}[activePortTime[0]]||90;
+  const labels = Array.from({length:Math.min(n,24)},(_,i)=>{
+    const d=new Date(); d.setDate(d.getDate()-Math.min(n,24)+i); return `${d.getDate()}/${d.getMonth()+1}`;
+  });
+  const data = genSeriesFrom(100000, labels.length, 2000);
+  if(perfChart) perfChart.destroy();
+  perfChart = new Chart(document.getElementById('perfChart'), {
+    type:'line', data:{labels, datasets:[{label:'Portfolio Value', data, borderColor:'var(--accent)', backgroundColor:'rgba(59,130,246,0.08)', borderWidth:2, pointRadius:0, tension:0.4, fill:true}]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'rgba(150,150,150,0.7)',font:{size:10},maxTicksLimit:6}}, y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'rgba(150,150,150,0.7)',font:{size:10},callback:v=>'$'+Math.round(v/1000)+'K'}} }, animation:{duration:600} }
+  });
+}
+function setPortTime(t) {
+  activePortTime=t;
+  document.querySelectorAll('#port-time-tabs .time-tab').forEach(el=>el.classList.toggle('active',el.textContent===t));
+  buildPerfChart();
+}
+function genSeriesFrom(start,n,vol) {
+  let v=start; return Array.from({length:n},()=>{ v+=(Math.random()-0.47)*vol; return Math.round(Math.max(v,80000)); });
+}
+buildPerfChart();
+
+// MONTHLY BAR CHART
+const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const monthData = months.map(()=>Math.round((Math.random()-0.35)*5000));
+const monthChart = new Chart(document.getElementById('monthChart'),{
+  type:'bar', data:{labels:months, datasets:[{label:'Monthly P&L', data:monthData, backgroundColor:monthData.map(v=>v>=0?'rgba(34,197,94,0.5)':'rgba(239,68,68,0.5)'), borderColor:monthData.map(v=>v>=0?'#22c55e':'#ef4444'), borderWidth:1, borderRadius:4}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'rgba(150,150,150,0.7)',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'rgba(150,150,150,0.7)',font:{size:10},callback:v=>v>0?'+$'+v:'$'+v}}},animation:{duration:800}}
+});
+
+function toggleView(v) {
+  document.getElementById('view-overview').style.display = v==='overview'?'block':'none';
+  document.getElementById('view-performance').style.display = v==='performance'?'block':'none';
+  document.getElementById('btn-overview').classList.toggle('active', v==='overview');
+  document.getElementById('btn-perf').classList.toggle('active', v==='performance');
+}
+
+initReveal();
+</script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watchlist — Crypto Pulse</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="shared.css">
+<style>
+.watch-featured { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.5rem; }
+.watch-feat-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:1.2rem; transition:all 0.3s; position:relative; overflow:hidden; }
+.watch-feat-card:hover { border-color:var(--accent); box-shadow:0 0 25px var(--glow); transform:translateY(-3px); }
+.star-corner { position:absolute; top:0.8rem; right:0.8rem; }
+.search-bar { display:flex; gap:0.75rem; align-items:center; margin-bottom:1.2rem; flex-wrap:wrap; }
+.search-input {
+  flex:1; min-width:180px; padding:0.6rem 1rem;
+  background:var(--card); border:1px solid var(--border);
+  border-radius:8px; color:var(--text); font-family:var(--font-main); font-size:0.85rem;
+  transition:border-color 0.2s; outline:none;
+}
+.search-input:focus { border-color:var(--accent); }
+.search-input::placeholder { color:var(--text3); }
+.watch-table-wrap { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+
+@media(max-width:768px){ .watch-featured{grid-template-columns:1fr 1fr;} }
+@media(max-width:480px){ .watch-featured{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div></div>
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="logo.png" alt="Crypto Pulse" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Crypto Pulse</span>
+    </a>
+    <div class="nav-links" id="nav-links"></div>
+    <div class="nav-right">
+      <div class="theme-select-wrap">
+        <button class="theme-btn" onclick="toggleThemeDropdown()"><span class="theme-dot"></span> Theme ▾</button>
+        <div class="theme-dropdown" id="theme-dd"></div>
+      </div>
+      <button class="hamburger" onclick="toggleMobileMenu()"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+<div class="ticker-wrap" id="ticker-wrap" style="margin-top:64px"></div>
+
+<div class="page-wrapper">
+  <div class="main-content">
+    <div class="page-header reveal">
+      <div class="page-icon">👁</div>
+      <div><div class="page-title">Watchlist</div><div class="page-sub">Monitor your favorite cryptocurrencies</div></div>
+    </div>
+
+    <!-- FEATURED (starred) -->
+    <div class="watch-featured reveal" id="watch-featured"></div>
+
+    <!-- SEARCH + FILTER -->
+    <div class="search-bar reveal">
+      <input type="text" class="search-input" placeholder="🔍 Search coins..." id="search-input" oninput="filterTable()">
+      <div class="filter-tabs" id="sort-tabs">
+        <button class="filter-tab active" onclick="sortBy('rank',this)">Market Cap ▾</button>
+        <button class="filter-tab" onclick="sortBy('price',this)">Price</button>
+        <button class="filter-tab" onclick="sortBy('change24',this)">24h %</button>
+        <button class="filter-tab" onclick="sortBy('change7',this)">7d %</button>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="watch-table-wrap reveal">
+      <table class="data-table" style="min-width:600px">
+        <thead>
+          <tr>
+            <th>#</th><th>Name</th><th>Price</th><th>24h</th><th>7d</th><th>MCap</th><th>★</th>
+          </tr>
+        </thead>
+        <tbody id="watch-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+document.getElementById('nav-links').innerHTML = buildNav('watchlist.html');
+document.getElementById('mobile-menu').innerHTML = buildNav('watchlist.html');
+document.getElementById('theme-dd').innerHTML = buildThemeDropdown();
+
+let starred = new Set(['btc','eth','sol','avax']);
+let sortKey = 'rank', liveData = COINS.map((c,i)=>({...c,rank:i+1}));
+
+const liveCoins = startLivePrices(coins => {
+  liveData = coins.map((c,i)=>({...c,rank:i+1}));
+  renderTable(); renderFeatured();
+  document.getElementById('ticker-wrap').innerHTML = buildTicker(coins);
+});
+document.getElementById('ticker-wrap').innerHTML = buildTicker(liveData);
+
+function renderFeatured() {
+  const featCoins = liveData.filter(c=>starred.has(c.id)).slice(0,4);
+  document.getElementById('watch-featured').innerHTML = featCoins.map(c=>`
+    <div class="watch-feat-card">
+      <div class="star-corner">
+        <button class="star-btn starred" onclick="toggleStar('${c.id}')">★</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.6rem">
+        <div class="crypto-avatar" style="background:${c.color};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.65rem;color:white">${c.avatar}</div>
+        <div><div style="font-weight:600;font-size:0.85rem">${c.name}</div><div style="font-size:0.7rem;color:var(--text3)">${c.sym}</div></div>
+      </div>
+      <canvas id="wf-${c.id}" height="30" style="width:100%;margin-bottom:0.4rem"></canvas>
+      <div style="font-weight:700;font-family:var(--font-display)">${fmtPrice(c.price)}</div>
+      <div class="${c.change24>=0?'up':'down'}" style="font-size:0.75rem">${c.change24>=0?'▲':'▼'} ${Math.abs(c.change24)}%</div>
+    </div>`).join('');
+  featCoins.forEach(c => drawSparkFeat(`wf-${c.id}`, c.change24>=0));
+}
+
+function drawSparkFeat(id, pos) {
+  const el = document.getElementById(id); if(!el) return;
+  const ctx = el.getContext('2d');
+  const data = Array.from({length:15},(_,i)=>50+(pos?1:-1)*i*0.4+(Math.random()-0.5)*8);
+  const w = el.parentElement.offsetWidth-32, h = 30;
+  el.width = w; el.height = h;
+  const min=Math.min(...data),max=Math.max(...data),range=max-min||1;
+  const pts = data.map((v,i)=>[i/(data.length-1)*w, h-(v-min)/range*(h-4)-2]);
+  const grad=ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,pos?'rgba(34,197,94,0.25)':'rgba(239,68,68,0.25)');
+  grad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath(); pts.forEach(([x,y],i)=>i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+  ctx.fillStyle=grad; ctx.fill();
+  ctx.beginPath(); pts.forEach(([x,y],i)=>i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+  ctx.strokeStyle=pos?'#22c55e':'#ef4444'; ctx.lineWidth=1.5; ctx.stroke();
+}
+
+function renderTable() {
+  let data = [...liveData];
+  const q = document.getElementById('search-input').value.toLowerCase();
+  if(q) data = data.filter(c=>c.name.toLowerCase().includes(q)||c.sym.toLowerCase().includes(q));
+  if(sortKey!=='rank') data.sort((a,b)=>b[sortKey]-a[sortKey]);
+  document.getElementById('watch-tbody').innerHTML = data.map(c=>`
+    <tr>
+      <td style="color:var(--text3)">${c.rank}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:0.6rem">
+          <div class="crypto-avatar" style="background:${c.color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.62rem;color:white">${c.avatar}</div>
+          <div><div style="font-weight:600;font-size:0.88rem">${c.name}</div><div style="font-size:0.7rem;color:var(--text3)">${c.sym}</div></div>
+        </div>
+      </td>
+      <td style="font-weight:700;font-family:var(--font-display)">${fmtPrice(c.price)}</td>
+      <td class="${c.change24>=0?'up':'down'}">${c.change24>=0?'▲':'▼'} ${Math.abs(c.change24)}%</td>
+      <td class="${c.change7>=0?'up':'down'}">${c.change7>=0?'+':''}${c.change7}%</td>
+      <td style="color:var(--text2)">${c.mcap}</td>
+      <td><button class="star-btn ${starred.has(c.id)?'starred':''}" onclick="toggleStar('${c.id}')">${starred.has(c.id)?'★':'☆'}</button></td>
+    </tr>`).join('');
+}
+
+function toggleStar(id) {
+  if(starred.has(id)) starred.delete(id); else starred.add(id);
+  renderTable(); renderFeatured();
+}
+function filterTable() { renderTable(); }
+function sortBy(key, el) {
+  sortKey=key;
+  document.querySelectorAll('#sort-tabs .filter-tab').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+}
+
+renderTable(); renderFeatured();
+initReveal();
+</script>
+</body>
+</html>

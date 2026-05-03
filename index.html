@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto Pulse — Market Analytics Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* ===== WELCOME PAGE SPECIFIC ===== */
+body { overflow-x: hidden; }
+
+/* STAR FIELD */
+#starfield { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+/* PROGRESS BAR */
+#auto-progress {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  height: 5px;
+  background: linear-gradient(90deg, #f59e0b, #ef4444, #8b5cf6, #3b82f6, #10b981, #f59e0b);
+  background-size: 400% 100%;
+  animation: rainbowShift 2s linear infinite;
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform 0.1s linear;
+}
+@keyframes rainbowShift { from{background-position:0% 0} to{background-position:100% 0} }
+
+/* PAUSE BTN */
+#pause-btn {
+  position: fixed; bottom: 20px; right: 20px; z-index: 300;
+  background: rgba(0,0,0,0.7); border: 1px solid var(--accent);
+  color: var(--accent); padding: 0.6rem 1.2rem; border-radius: 30px;
+  cursor: pointer; font-size: 0.82rem; font-family: var(--font-main);
+  backdrop-filter: blur(12px); transition: all 0.3s;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+#pause-btn:hover { background: var(--accent); color: var(--bg); }
+
+/* HERO SECTION */
+.hero-section {
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 2rem; text-align: center; position: relative; z-index: 1;
+}
+
+.hero-logo-wrap {
+  margin-bottom: 2rem;
+  animation: logoEntrance 1.2s cubic-bezier(.22,.68,0,1.2) forwards;
+}
+@keyframes logoEntrance {
+  from { opacity:0; transform: scale(0.3) rotate(-10deg); }
+  to { opacity:1; transform: scale(1) rotate(0deg); }
+}
+.hero-logo-img {
+  width: 100px; height: 100px; object-fit: contain;
+  filter: drop-shadow(0 0 30px var(--accent)) drop-shadow(0 0 60px var(--accent));
+  animation: logoPulse 3s ease-in-out infinite;
+}
+@keyframes logoPulse { 0%,100%{filter:drop-shadow(0 0 20px var(--accent));} 50%{filter:drop-shadow(0 0 50px var(--accent)) drop-shadow(0 0 80px var(--accent));} }
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 6rem);
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent3));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  animation: titleSlide 1s 0.3s both;
+  line-height: 1.1; margin-bottom: 0.5rem;
+}
+@keyframes titleSlide { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
+
+.hero-sub {
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  color: var(--text3); letter-spacing: 0.15em; text-transform: uppercase;
+  margin-bottom: 2rem;
+  animation: titleSlide 1s 0.5s both;
+}
+
+.taglines {
+  display: flex; flex-direction: column; gap: 0.5rem;
+  margin-bottom: 2.5rem;
+  animation: titleSlide 1s 0.7s both;
+}
+.tagline-item {
+  font-size: clamp(0.9rem, 2vw, 1.05rem);
+  padding: 0.5rem 1.5rem; border-radius: 30px;
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.03);
+}
+.tagline-1 { color: var(--accent); }
+.tagline-2 { color: var(--accent2); }
+.tagline-3 { color: var(--accent3); }
+
+/* PILLS */
+.hero-pills {
+  display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 3rem;
+  animation: titleSlide 1s 0.9s both;
+}
+.pill {
+  padding: 0.5rem 1.2rem; border-radius: 30px;
+  border: 1px solid var(--border); font-size: 0.8rem;
+  background: var(--card); color: var(--text2);
+  display: flex; align-items: center; gap: 0.4rem;
+}
+
+/* FLOATING COINS */
+.coins-float {
+  position: absolute; width: 100%; height: 100%;
+  top: 0; left: 0; pointer-events: none;
+}
+.float-coin {
+  position: absolute; font-size: 1.5rem;
+  animation: floatCoin linear infinite;
+  opacity: 0.6;
+}
+@keyframes floatCoin {
+  from { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.7; }
+  90% { opacity: 0.7; }
+  to { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+}
+
+/* CRYPTO LADY / ASSISTANT CHARACTER */
+.assistant-wrap {
+  position: relative; width: 160px; height: 200px;
+  margin: 0 auto 2rem;
+  animation: titleSlide 1s 1s both;
+}
+.assistant-body {
+  width: 100%; height: 100%; position: relative;
+}
+/* SVG character */
+.char-svg { width: 100%; height: 100%; }
+
+/* FEATURES SECTION */
+.features-section {
+  position: relative; z-index: 1;
+  padding: 4rem 1.5rem;
+  background: linear-gradient(180deg, transparent, var(--bg2));
+}
+.features-inner { max-width: 1100px; margin: 0 auto; }
+.features-title {
+  text-align: center; font-family: var(--font-display);
+  font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 700;
+  color: var(--text); margin-bottom: 0.5rem;
+}
+.features-sub { text-align: center; color: var(--text3); font-size: 0.95rem; margin-bottom: 3rem; }
+.features-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem;
+}
+.feature-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 1.5rem;
+  text-align: left; transition: all 0.4s;
+  opacity: 0; transform: translateY(30px);
+}
+.feature-card.revealed { opacity: 1; transform: translateY(0); }
+.feature-card:hover { border-color: var(--accent); box-shadow: 0 0 30px var(--glow); transform: translateY(-4px); }
+.feat-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+.feat-title { font-weight: 700; color: var(--text); margin-bottom: 0.4rem; font-size: 0.95rem; font-family: var(--font-display); }
+.feat-desc { color: var(--text3); font-size: 0.82rem; line-height: 1.5; }
+
+/* ENTER BUTTON */
+.enter-wrap {
+  text-align: center; padding: 3rem 1.5rem 6rem;
+  position: relative; z-index: 1;
+}
+.enter-btn {
+  display: inline-flex; align-items: center; gap: 0.75rem;
+  padding: 1rem 2.5rem; border-radius: 50px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: var(--bg); font-weight: 700; font-size: 1rem;
+  font-family: var(--font-display); text-decoration: none;
+  box-shadow: 0 0 40px var(--glow);
+  animation: btnPulse 2s ease-in-out infinite;
+  transition: transform 0.3s;
+}
+.enter-btn:hover { transform: scale(1.05); }
+@keyframes btnPulse { 0%,100%{box-shadow:0 0 30px var(--glow);} 50%{box-shadow:0 0 60px var(--glow);} }
+
+@media (max-width: 768px) {
+  .features-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .features-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- STAR FIELD -->
+<canvas id="starfield"></canvas>
+
+<!-- BG ORBS -->
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<!-- PROGRESS BAR -->
+<div id="auto-progress"></div>
+
+<!-- PAUSE BTN -->
+<button id="pause-btn" onclick="togglePause()">
+  <span id="pause-icon">⏸</span>
+  <span id="pause-label">Pause</span>
+</button>
+
+<!-- FLOATING COINS -->
+<div class="coins-float" id="coins"></div>
+
+<!-- HERO SECTION -->
+<section class="hero-section" id="hero">
+
+  <!-- ASSISTANT CHARACTER (SVG) -->
+  <div class="assistant-wrap">
+    <svg class="char-svg" viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg">
+      <!-- Body -->
+      <ellipse cx="80" cy="150" rx="40" ry="45" fill="url(#bodyGrad)" opacity="0.9"/>
+      <!-- Head -->
+      <circle cx="80" cy="75" r="38" fill="url(#headGrad)"/>
+      <!-- AR Visor -->
+      <rect x="52" y="65" width="56" height="18" rx="9" fill="url(#visorGrad)" opacity="0.9"/>
+      <rect x="54" y="67" width="22" height="14" rx="7" fill="#00ffff" opacity="0.3"/>
+      <rect x="82" y="67" width="22" height="14" rx="7" fill="#00ffff" opacity="0.3"/>
+      <!-- Eyes in visor -->
+      <circle cx="65" cy="74" r="5" fill="#00ffff" opacity="0.9"/>
+      <circle cx="93" cy="74" r="5" fill="#00ffff" opacity="0.9"/>
+      <circle cx="66" cy="73" r="2" fill="white"/>
+      <circle cx="94" cy="73" r="2" fill="white"/>
+      <!-- Smile -->
+      <path d="M66 92 Q80 102 94 92" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <!-- Hair -->
+      <ellipse cx="80" cy="40" rx="36" ry="15" fill="#1a1a2e"/>
+      <rect x="46" y="38" width="8" height="25" rx="4" fill="#1a1a2e"/>
+      <rect x="106" y="38" width="8" height="25" rx="4" fill="#1a1a2e"/>
+      <!-- Arms -->
+      <rect x="28" y="115" width="14" height="40" rx="7" fill="url(#bodyGrad)" transform="rotate(-10 35 135)"/>
+      <rect x="118" y="115" width="14" height="40" rx="7" fill="url(#bodyGrad)" transform="rotate(10 125 135)"/>
+      <!-- Chest screen -->
+      <rect x="60" y="125" width="40" height="30" rx="6" fill="#0a0a1f" stroke="#00ffff" stroke-width="1" opacity="0.8"/>
+      <polyline points="63,148 70,138 77,143 84,132 91,139 98,130" stroke="#00ffff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Floating BTC coin -->
+      <g transform="translate(20,70)">
+        <circle cx="12" cy="12" r="12" fill="#f59e0b" opacity="0.9"/>
+        <text x="12" y="17" text-anchor="middle" fill="white" font-size="10" font-weight="bold">₿</text>
+      </g>
+      <!-- Floating ETH coin -->
+      <g transform="translate(118,55)">
+        <circle cx="12" cy="12" r="12" fill="#6366f1" opacity="0.9"/>
+        <text x="12" y="17" text-anchor="middle" fill="white" font-size="8" font-weight="bold">Ξ</text>
+      </g>
+      <defs>
+        <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#3b82f6"/>
+          <stop offset="100%" stop-color="#6366f1"/>
+        </linearGradient>
+        <linearGradient id="headGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#fbbf24"/>
+          <stop offset="100%" stop-color="#f59e0b"/>
+        </linearGradient>
+        <linearGradient id="visorGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#0f172a"/>
+          <stop offset="100%" stop-color="#1e293b"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </div>
+
+  <!-- LOGO -->
+  <div class="hero-logo-wrap">
+    <img src="logo.png" alt="Crypto Pulse" class="hero-logo-img"
+      onerror="this.style.display='none';document.getElementById('fallback-logo').style.display='flex'">
+    <div id="fallback-logo" style="display:none;width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));align-items:center;justify-content:center;margin:0 auto;font-size:2rem;">₿</div>
+  </div>
+
+  <h1 class="hero-title">Crypto Pulse</h1>
+  <p class="hero-sub">Market Analytics Dashboard</p>
+
+  <div class="taglines">
+    <span class="tagline-item tagline-1">"Track the rhythm of the crypto market."</span>
+    <span class="tagline-item tagline-2">"Real-time insights. Smarter crypto decisions."</span>
+    <span class="tagline-item tagline-3">"Stay ahead of every market heartbeat."</span>
+  </div>
+
+  <div class="hero-pills">
+    <span class="pill">🔴 Live Market Data</span>
+    <span class="pill">📊 9 Features</span>
+    <span class="pill">🌐 4 Themes</span>
+    <span class="pill">📱 Mobile Ready</span>
+  </div>
+</section>
+
+<!-- FEATURES SECTION -->
+<section class="features-section" id="features">
+  <div class="features-inner">
+    <p style="text-align:center;color:var(--text3);font-size:0.75rem;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:0.5rem;">EXPLORING FEATURES</p>
+    <h2 class="features-title">Everything You Need</h2>
+    <p class="features-sub">Powerful tools for every crypto enthusiast</p>
+    <div class="features-grid" id="features-grid">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ENTER BUTTON -->
+<div class="enter-wrap">
+  <a href="dashboard.html" class="enter-btn" id="enter-btn">
+    Enter Dashboard →
+  </a>
+</div>
+
+<script src="shared.js"></script>
+<script>
+// ===== STAR FIELD =====
+const canvas = document.getElementById('starfield');
+const ctx = canvas.getContext('2d');
+let stars = [];
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+function initStars() {
+  stars = Array.from({length:200}, () => ({
+    x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+    r: Math.random()*1.5+0.3, spd: Math.random()*0.3+0.1,
+    twinkle: Math.random()*Math.PI*2
+  }));
+}
+function drawStars() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  stars.forEach(s => {
+    s.twinkle += 0.02; s.y += s.spd;
+    if (s.y > canvas.height) { s.y = 0; s.x = Math.random()*canvas.width; }
+    const alpha = 0.4 + Math.sin(s.twinkle)*0.4;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`; ctx.fill();
+  });
+  requestAnimationFrame(drawStars);
+}
+resizeCanvas(); initStars(); drawStars();
+window.addEventListener('resize', () => { resizeCanvas(); initStars(); });
+
+// ===== FLOATING COINS =====
+const coinSyms = ['₿','Ξ','◎','⬡','◆','▲'];
+const coinColors = ['#f59e0b','#6366f1','#8b5cf6','#3b82f6','#ef4444','#10b981'];
+const coinsDiv = document.getElementById('coins');
+for (let i = 0; i < 14; i++) {
+  const c = document.createElement('span');
+  c.className = 'float-coin';
+  c.textContent = coinSyms[i % coinSyms.length];
+  c.style.left = Math.random()*100 + 'vw';
+  c.style.animationDuration = (8 + Math.random()*12) + 's';
+  c.style.animationDelay = (Math.random()*10) + 's';
+  c.style.color = coinColors[i % coinColors.length];
+  coinsDiv.appendChild(c);
+}
+
+// ===== FEATURES CARDS =====
+const FEATURES = [
+  { icon:'📈', title:'Live Price Charts', desc:'Real-time interactive charts with area, bar & composed views across multiple timeframes.' },
+  { icon:'💼', title:'Portfolio Tracker', desc:'Track all your holdings, PnL, allocation pie charts and performance over time.' },
+  { icon:'👁', title:'Watchlist', desc:'Bookmark your favourite coins and monitor sparklines, prices and signals at a glance.' },
+  { icon:'↔', title:'Transaction History', desc:'Full audit trail of every buy & sell with status, timestamps and cost analytics.' },
+  { icon:'📰', title:'Crypto News Feed', desc:'Curated crypto headlines with category filters — market, DeFi, regulation, gaming.' },
+  { icon:'⚡', title:'Market Signals', desc:'Bullish & bearish trend indicators with overall sentiment bar updated in real-time.' },
+  { icon:'🎨', title:'4 Color Themes', desc:'Switch between Dark, Light, Emerald and Neon themes to match your style.' },
+  { icon:'📱', title:'Mobile Responsive', desc:'Fully optimized for every device — from phones to ultra-wide monitors.' },
+  { icon:'🔴', title:'Live Price Ticker', desc:'Scrolling live ticker bar shows all coins with price and 24h change at all times.' },
+];
+const grid = document.getElementById('features-grid');
+grid.innerHTML = FEATURES.map((f,i) => `
+  <div class="feature-card" style="transition-delay:${i*0.08}s">
+    <div class="feat-icon">${f.icon}</div>
+    <div class="feat-title">${f.title}</div>
+    <div class="feat-desc">${f.desc}</div>
+  </div>`).join('');
+
+// ===== AUTO SCROLL + NAVIGATE =====
+const TOTAL_DURATION = 5500; // 5.5 seconds
+let startTime = null, paused = false, pausedAt = 0, elapsed = 0;
+const progressEl = document.getElementById('auto-progress');
+const pauseBtn = document.getElementById('pause-btn');
+const pauseIcon = document.getElementById('pause-icon');
+const pauseLabel = document.getElementById('pause-label');
+
+function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+function autoScroll(ts) {
+  if (paused) return;
+  if (!startTime) startTime = ts;
+  elapsed = ts - startTime;
+  const progress = Math.min(elapsed / TOTAL_DURATION, 1);
+  const eased = easeInOut(progress);
+
+  // Scroll the page
+  const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+  window.scrollTo(0, totalScroll * eased);
+
+  // Update progress bar
+  progressEl.style.transform = `scaleX(${progress})`;
+
+  // Reveal feature cards progressively
+  if (progress > 0.4) {
+    document.querySelectorAll('.feature-card').forEach((el, i) => {
+      if (progress > 0.4 + i * 0.04) el.classList.add('revealed');
+    });
+  }
+
+  if (progress < 1) {
+    requestAnimationFrame(autoScroll);
+  } else {
+    // Navigate to dashboard
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 400);
+  }
+}
+
+function togglePause() {
+  paused = !paused;
+  if (paused) {
+    pauseIcon.textContent = '▶';
+    pauseLabel.textContent = 'Resume';
+  } else {
+    pauseIcon.textContent = '⏸';
+    pauseLabel.textContent = 'Pause';
+    // recalculate startTime to not jump
+    startTime = performance.now() - elapsed;
+    requestAnimationFrame(autoScroll);
+  }
+}
+
+// Start auto scroll after 0.8s
+setTimeout(() => requestAnimationFrame(autoScroll), 800);
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>News — Crypto Pulse</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="shared.css">
+<style>
+.news-hero-card {
+  border-radius:20px; overflow:hidden; margin-bottom:1.5rem;
+  position:relative; min-height:280px; display:flex; align-items:flex-end;
+  background:var(--card); border:1px solid var(--border);
+  cursor:pointer; transition:all 0.3s;
+}
+.news-hero-card:hover { box-shadow:0 0 40px var(--glow); transform:translateY(-3px); }
+.news-hero-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0.4; }
+.news-hero-gradient { position:absolute; inset:0; background:linear-gradient(to top, var(--bg) 0%, rgba(0,0,0,0.3) 60%, transparent 100%); }
+.news-hero-content { position:relative; z-index:2; padding:2rem; }
+.news-hero-title { font-family:var(--font-display); font-size:clamp(1.2rem,3vw,1.8rem); font-weight:700; color:var(--text); margin-bottom:0.5rem; line-height:1.3; }
+.news-hero-desc { color:var(--text2); font-size:0.88rem; line-height:1.5; max-width:600px; }
+
+.news-full-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1rem; }
+.news-full-card {
+  background:var(--card); border:1px solid var(--border); border-radius:14px;
+  overflow:hidden; transition:all 0.3s; cursor:pointer;
+}
+.news-full-card:hover { border-color:var(--accent); box-shadow:0 0 24px var(--glow); transform:translateY(-3px); }
+.news-card-img { width:100%; height:160px; object-fit:cover; }
+.news-card-body { padding:1rem; }
+.news-card-title { font-weight:700; color:var(--text); font-size:0.9rem; margin-bottom:0.4rem; line-height:1.3; }
+.news-card-desc { color:var(--text2); font-size:0.8rem; line-height:1.4; margin-bottom:0.5rem; }
+.news-card-meta { display:flex; align-items:center; justify-content:space-between; font-size:0.72rem; color:var(--text3); }
+
+@media(max-width:768px){ .news-full-grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div></div>
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="logo.png" alt="Crypto Pulse" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Crypto Pulse</span>
+    </a>
+    <div class="nav-links" id="nav-links"></div>
+    <div class="nav-right">
+      <div class="theme-select-wrap">
+        <button class="theme-btn" onclick="toggleThemeDropdown()"><span class="theme-dot"></span> Theme ▾</button>
+        <div class="theme-dropdown" id="theme-dd"></div>
+      </div>
+      <button class="hamburger" onclick="toggleMobileMenu()"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+<div class="ticker-wrap" id="ticker-wrap" style="margin-top:64px"></div>
+
+<div class="page-wrapper">
+  <div class="main-content">
+    <div class="page-header reveal">
+      <div class="page-icon">📰</div>
+      <div><div class="page-title">Crypto News</div><div class="page-sub">Stay up to date with the crypto world</div></div>
+      <div style="margin-left:auto">
+        <div class="filter-tabs" id="cat-tabs">
+          <button class="filter-tab active" onclick="filterCat('all',this)">All</button>
+          <button class="filter-tab" onclick="filterCat('market',this)">Market</button>
+          <button class="filter-tab" onclick="filterCat('defi',this)">DeFi</button>
+          <button class="filter-tab" onclick="filterCat('regulation',this)">Regulation</button>
+          <button class="filter-tab" onclick="filterCat('gaming',this)">Gaming</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HERO NEWS -->
+    <div class="news-hero-card reveal" id="news-hero"></div>
+
+    <!-- NEWS GRID -->
+    <div class="news-full-grid" id="news-grid"></div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+document.getElementById('nav-links').innerHTML = buildNav('news.html');
+document.getElementById('mobile-menu').innerHTML = buildNav('news.html');
+document.getElementById('theme-dd').innerHTML = buildThemeDropdown();
+
+const liveCoins = startLivePrices(coins => { document.getElementById('ticker-wrap').innerHTML = buildTicker(coins); });
+document.getElementById('ticker-wrap').innerHTML = buildTicker(liveCoins);
+
+let activeCat = 'all';
+
+function renderNews() {
+  const data = activeCat==='all' ? NEWS : NEWS.filter(n=>n.tag===activeCat);
+  
+  // Hero card = first item
+  const hero = data[0];
+  if(hero) {
+    document.getElementById('news-hero').innerHTML = `
+      <img class="news-hero-img" src="${hero.img}" alt="news">
+      <div class="news-hero-gradient"></div>
+      <div class="news-hero-content">
+        <span class="news-tag ${hero.tagClass}" style="margin-bottom:0.6rem;display:inline-block">${hero.tag}</span>
+        <div class="news-hero-title">${hero.title}</div>
+        <div class="news-hero-desc">${hero.desc}</div>
+        <div style="margin-top:0.8rem;font-size:0.78rem;color:var(--text3)">${hero.time}</div>
+      </div>`;
+  }
+  
+  // Grid = remaining
+  document.getElementById('news-grid').innerHTML = data.slice(1).map((n,i) => `
+    <div class="news-full-card reveal" style="transition-delay:${i*0.08}s">
+      <img class="news-card-img" src="${n.img}" alt="${n.title}">
+      <div class="news-card-body">
+        <span class="news-tag ${n.tagClass}">${n.tag}</span>
+        <div class="news-card-title">${n.title}</div>
+        <div class="news-card-desc">${n.desc}</div>
+        <div class="news-card-meta"><span>${n.time}</span><span style="color:var(--accent)">Read more ↗</span></div>
+      </div>
+    </div>`).join('') || `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text3)">No articles in this category</div>`;
+  
+  initReveal();
+}
+
+function filterCat(cat, el) {
+  activeCat=cat;
+  document.querySelectorAll('#cat-tabs .filter-tab').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active'); renderNews();
+}
+
+renderNews();
+initReveal();
+</script>
+</body>
+</html>

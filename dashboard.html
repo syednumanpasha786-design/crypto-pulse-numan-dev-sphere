@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Crypto Pulse</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="shared.css">
+<style>
+.hero-banner {
+  background: linear-gradient(135deg, var(--bg3), var(--card));
+  border: 1px solid var(--border);
+  border-radius: 20px; padding: 2rem 2.5rem;
+  margin-bottom: 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 2rem; overflow: hidden; position: relative;
+}
+[data-theme="dark"] .hero-banner {
+  background: linear-gradient(135deg, #0f0f1a, #1a1a2e);
+  box-shadow: inset 0 0 60px rgba(212,175,55,0.04);
+}
+[data-theme="neon"] .hero-banner {
+  background: linear-gradient(135deg, #07071c, #0c0c25);
+  box-shadow: 0 0 30px rgba(0,255,255,0.05), inset 0 0 40px rgba(191,95,255,0.03);
+}
+[data-theme="emerald"] .hero-banner {
+  background: linear-gradient(135deg, #0f2214, #142d19);
+  box-shadow: 0 0 30px rgba(52,211,153,0.05);
+}
+.banner-glow {
+  position: absolute; width: 300px; height: 300px;
+  background: radial-gradient(circle, var(--glow), transparent 70%);
+  right: -50px; top: -50px; pointer-events: none;
+}
+.banner-left { flex: 1; }
+.banner-logo-row { display: flex; align-items: center; gap: 1.2rem; margin-bottom: 0.75rem; }
+
+/* ===== ENHANCED LOGO ===== */
+.banner-logo-wrap {
+  position: relative;
+  width: 84px; height: 84px;
+  flex-shrink: 0;
+}
+/* Spinning outer conic ring */
+.banner-logo-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--accent) 0deg,
+    transparent 80deg,
+    var(--accent2) 160deg,
+    transparent 240deg,
+    var(--accent3) 300deg,
+    transparent 340deg,
+    var(--accent) 360deg
+  );
+  animation: logoRingSpin 2.8s linear infinite;
+  z-index: 0;
+}
+/* Soft radial glow behind logo */
+.banner-logo-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--glow) 0%, transparent 65%);
+  animation: logoBgPulse 2.5s ease-in-out infinite;
+  z-index: 0;
+}
+@keyframes logoRingSpin { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+@keyframes logoBgPulse { 0%,100%{opacity:0.55;transform:scale(1);} 50%{opacity:1;transform:scale(1.2);} }
+
+/* Floating logo image */
+.banner-logo {
+  position: relative; z-index: 2;
+  width: 84px; height: 84px;
+  object-fit: contain;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  background: var(--bg2);
+  padding: 7px;
+  box-shadow:
+    0 0 22px var(--accent),
+    0 0 50px var(--glow),
+    inset 0 0 16px rgba(255,255,255,0.04);
+  animation: logoFloat 3s ease-in-out infinite, logoPulse2 3s ease-in-out infinite;
+  display: block;
+}
+@keyframes logoFloat {
+  0%,100% { transform: translateY(0px); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes logoPulse2 {
+  0%,100%{ box-shadow: 0 0 22px var(--accent), 0 0 50px var(--glow); }
+  50%{ box-shadow: 0 0 38px var(--accent), 0 0 80px var(--glow), 0 0 110px var(--glow); }
+}
+
+/* Two orbiting dots around logo */
+.logo-orbit-dot {
+  position: absolute; z-index: 3;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--accent2);
+  box-shadow: 0 0 10px var(--accent2);
+  top: 50%; left: 50%;
+  margin-top: -5px; margin-left: -5px;
+  animation: orbitDot 2s linear infinite;
+}
+.logo-orbit-dot2 {
+  position: absolute; z-index: 3;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent3);
+  box-shadow: 0 0 8px var(--accent3);
+  top: 50%; left: 50%;
+  margin-top: -3.5px; margin-left: -3.5px;
+  animation: orbitDot2 3.2s linear infinite reverse;
+}
+@keyframes orbitDot {
+  from { transform: rotate(0deg) translateX(50px); }
+  to   { transform: rotate(360deg) translateX(50px); }
+}
+@keyframes orbitDot2 {
+  from { transform: rotate(0deg) translateX(56px); }
+  to   { transform: rotate(360deg) translateX(56px); }
+}
+/* ===== END ENHANCED LOGO ===== */
+
+.banner-title { font-family: var(--font-display); font-size: clamp(1.5rem,3vw,2.2rem); font-weight: 900; color: var(--accent); }
+[data-theme="dark"] .banner-title { text-shadow: 0 0 30px var(--accent); }
+[data-theme="neon"] .banner-title { text-shadow: 0 0 20px var(--accent), 0 0 50px var(--accent); }
+.banner-desc { color: var(--text2); font-size: 0.88rem; margin-bottom: 1rem; max-width: 450px; line-height: 1.5; }
+.tagline-ticker {
+  overflow: hidden; height: 24px;
+  position: relative;
+}
+.tagline-ticker-inner {
+  display: flex; flex-direction: column;
+  animation: taglineTick 6s ease-in-out infinite;
+}
+.tagline-ticker-inner span {
+  height: 24px; line-height: 24px;
+  font-size: 0.82rem; color: var(--accent3);
+  font-style: italic; flex-shrink: 0;
+}
+@keyframes taglineTick {
+  0%,28%{transform:translateY(0);}
+  33%,61%{transform:translateY(-24px);}
+  66%,94%{transform:translateY(-48px);}
+  100%{transform:translateY(0);}
+}
+.banner-stats { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+.stat-pill {
+  padding: 0.3rem 0.8rem; border-radius: 20px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  font-size: 0.75rem; color: var(--text2);
+  display: flex; align-items: center; gap: 0.35rem;
+}
+.stat-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
+
+/* MINI ROBOT */
+.banner-right { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.mini-robot { width: 110px; height: 130px; animation: robotFloat 3s ease-in-out infinite; }
+@keyframes robotFloat { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+
+.chart-row { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+.chart-box { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; }
+.chart-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; flex-wrap: gap; gap: 0.5rem; }
+.chart-coins { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.coin-toggle {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.3rem 0.7rem; border-radius: 6px; border: 1px solid var(--border);
+  background: none; cursor: pointer; font-size: 0.75rem; font-family: var(--font-main);
+  color: var(--text2); transition: all 0.2s;
+}
+.coin-toggle.active { border-color: var(--accent); color: var(--accent); background: rgba(255,255,255,0.03); }
+.coin-dot { width: 8px; height: 8px; border-radius: 50%; }
+.time-tabs { display: flex; gap: 0.25rem; }
+.time-tab { padding: 0.25rem 0.6rem; border-radius: 5px; border: none; background: none; font-size: 0.72rem; color: var(--text3); cursor: pointer; font-family: var(--font-main); transition: all 0.2s; }
+.time-tab.active { background: var(--accent); color: var(--bg); }
+
+.fear-gauge { text-align: center; padding: 1rem 0; }
+.gauge-val { font-size: 2.5rem; font-weight: 700; font-family: var(--font-display); color: var(--text); }
+.gauge-label { display: inline-block; background: rgba(16,185,129,0.15); color: var(--green); padding: 0.2rem 0.7rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; margin-top: 0.3rem; }
+
+/* ===== AUDIO WELCOME TOAST ===== */
+#audio-toast {
+  position: fixed; bottom: 24px; left: 24px; z-index: 9999;
+  background: var(--card);
+  border: 1px solid var(--accent);
+  border-radius: 18px;
+  padding: 1rem 1.3rem;
+  display: flex; align-items: center; gap: 1rem;
+  box-shadow: 0 0 40px var(--glow), 0 10px 40px rgba(0,0,0,0.5);
+  min-width: 290px; max-width: 360px;
+  transform: translateY(120px); opacity: 0;
+  transition: all 0.55s cubic-bezier(.22,.68,0,1.2);
+  pointer-events: none;
+}
+#audio-toast.show { transform: translateY(0); opacity: 1; pointer-events: all; }
+
+.audio-robot-icon {
+  width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+  box-shadow: 0 0 18px var(--glow);
+  animation: audioPing 2s ease-in-out infinite;
+}
+@keyframes audioPing {
+  0%,100%{ box-shadow: 0 0 10px var(--glow); }
+  50%{ box-shadow: 0 0 30px var(--accent), 0 0 50px var(--glow); }
+}
+
+.audio-info { flex: 1; min-width: 0; }
+.audio-title { font-size: 0.8rem; font-weight: 700; color: var(--text); margin-bottom: 0.18rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.audio-sub { font-size: 0.68rem; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Animated wave bars */
+.audio-wave {
+  display: flex; align-items: center; gap: 2px; height: 22px; flex-shrink: 0;
+}
+.wave-bar {
+  width: 3px; border-radius: 2px;
+  background: var(--accent);
+  animation: waveAnim 0.7s ease-in-out infinite;
+}
+.wave-bar:nth-child(1){height:6px; animation-delay:0s;}
+.wave-bar:nth-child(2){height:14px;animation-delay:0.1s;}
+.wave-bar:nth-child(3){height:9px; animation-delay:0.2s;}
+.wave-bar:nth-child(4){height:20px;animation-delay:0.05s;}
+.wave-bar:nth-child(5){height:7px; animation-delay:0.3s;}
+.wave-bar:nth-child(6){height:17px;animation-delay:0.15s;}
+.wave-bar:nth-child(7){height:11px;animation-delay:0.25s;}
+@keyframes waveAnim {
+  0%,100%{ transform:scaleY(0.35); opacity:0.5; }
+  50%{ transform:scaleY(1); opacity:1; }
+}
+#audio-toast.done .wave-bar { animation: none; transform: scaleY(0.3); opacity: 0.2; }
+
+.audio-close-btn {
+  background: none; border: none; color: var(--text3);
+  font-size: 1rem; cursor: pointer; padding: 0.25rem;
+  transition: color 0.2s; flex-shrink: 0; line-height: 1;
+}
+.audio-close-btn:hover { color: var(--red); }
+
+@media(max-width:768px) {
+  .hero-banner { flex-direction: column; padding: 1.5rem; }
+  .chart-row { grid-template-columns: 1fr; }
+  .mini-robot { display: none; }
+  .banner-logo-wrap { width: 68px; height: 68px; }
+  .banner-logo { width: 68px; height: 68px; }
+  #audio-toast { left: 12px; right: 12px; min-width: unset; max-width: unset; bottom: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-orbs"><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div></div>
+
+<!-- ===== AUDIO WELCOME TOAST ===== -->
+<div id="audio-toast">
+  <div class="audio-robot-icon">🤖</div>
+  <div class="audio-info">
+    <div class="audio-title">Crypto Pulse — Voice Welcome</div>
+    <div class="audio-sub" id="audio-sub-text">Initializing...</div>
+  </div>
+  <div class="audio-wave">
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div>
+  </div>
+  <button class="audio-close-btn" onclick="stopAudio()" title="Stop & Close">✕</button>
+</div>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="logo.png" alt="Crypto Pulse" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Crypto Pulse</span>
+    </a>
+    <div class="nav-links" id="nav-links"></div>
+    <div class="nav-right">
+      <div class="theme-select-wrap">
+        <button class="theme-btn" onclick="toggleThemeDropdown()">
+          <span class="theme-dot"></span> Theme ▾
+        </button>
+        <div class="theme-dropdown" id="theme-dd"></div>
+      </div>
+      <button class="hamburger" onclick="toggleMobileMenu()">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker-wrap" id="ticker-wrap" style="margin-top:64px"></div>
+
+<div class="page-wrapper">
+  <div class="main-content">
+
+    <!-- HERO BANNER -->
+    <div class="hero-banner reveal" id="hero-banner">
+      <div class="banner-glow"></div>
+      <div class="banner-left">
+        <div class="banner-logo-row">
+
+          <!-- ===== ENHANCED LOGO WITH ORBITING DOTS + RING ===== -->
+          <div class="banner-logo-wrap">
+            <img src="logo.png" alt="logo" class="banner-logo"
+              onerror="this.style.display='none';document.getElementById('logo-fb').style.display='flex'">
+            <div id="logo-fb" style="display:none;position:relative;z-index:2;width:84px;height:84px;
+              border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));
+              align-items:center;justify-content:center;font-size:1.9rem;
+              border:3px solid var(--accent);
+              box-shadow:0 0 22px var(--accent),0 0 50px var(--glow);
+              animation:logoFloat 3s ease-in-out infinite,logoPulse2 3s ease-in-out infinite;">₿</div>
+            <div class="logo-orbit-dot"></div>
+            <div class="logo-orbit-dot2"></div>
+          </div>
+          <!-- ===== END ENHANCED LOGO ===== -->
+
+          <span class="banner-title">Crypto Pulse</span>
+        </div>
+        <p class="banner-desc">Your all-in-one cryptocurrency analytics platform — live charts, portfolio tracking, market signals, news and more.</p>
+        <div class="tagline-ticker">
+          <div class="tagline-ticker-inner">
+            <span>"Track the rhythm of the crypto market."</span>
+            <span>"Real-time insights. Smarter crypto decisions."</span>
+            <span>"Stay ahead of every market heartbeat."</span>
+          </div>
+        </div>
+        <div class="banner-stats">
+          <span class="stat-pill"><span class="stat-pill-dot"></span> Live Prices: 8 coins</span>
+          <span class="stat-pill">💰 Market Cap: $2.45T</span>
+          <span class="stat-pill">🔴 Status: Live</span>
+          <span class="stat-pill">📈 Sentiment: 68% Bull</span>
+        </div>
+      </div>
+      <div class="banner-right">
+        <svg class="mini-robot" viewBox="0 0 110 130" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="55" cy="100" rx="30" ry="28" fill="url(#rb1)" opacity="0.9"/>
+          <circle cx="55" cy="50" r="28" fill="url(#rb2)"/>
+          <rect x="35" y="42" width="40" height="14" rx="7" fill="#0f172a" opacity="0.9"/>
+          <circle cx="47" cy="49" r="4" fill="#00ffff" opacity="0.9"/><circle cx="47.8" cy="48" r="1.5" fill="white"/>
+          <circle cx="63" cy="49" r="4" fill="#00ffff" opacity="0.9"/><circle cx="63.8" cy="48" r="1.5" fill="white"/>
+          <path d="M45 63 Q55 71 65 63" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <ellipse cx="55" cy="28" rx="25" ry="10" fill="#1a1a2e"/>
+          <rect x="15" y="78" width="10" height="26" rx="5" fill="url(#rb1)" transform="rotate(-8 20 90)"/>
+          <rect x="85" y="78" width="10" height="26" rx="5" fill="url(#rb1)" transform="rotate(8 90 90)"/>
+          <rect x="40" y="86" width="30" height="22" rx="4" fill="#0a0a1f" stroke="#00ffff" stroke-width="1"/>
+          <polyline points="43,103 48,95 53,99 58,90 63,96 68,88" stroke="#00ffff" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="25" cy="50" r="9" fill="#f59e0b" opacity="0.85"/><text x="25" y="55" text-anchor="middle" fill="white" font-size="8" font-weight="bold">₿</text>
+          <circle cx="88" cy="38" r="9" fill="#6366f1" opacity="0.85"/><text x="88" y="43" text-anchor="middle" fill="white" font-size="7" font-weight="bold">Ξ</text>
+          <defs>
+            <linearGradient id="rb1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#6366f1"/></linearGradient>
+            <linearGradient id="rb2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stat-grid reveal" id="stat-cards"></div>
+
+    <!-- TOP CRYPTOS -->
+    <div class="reveal" style="margin-bottom:1.5rem">
+      <div class="section-title"><span class="live-dot"></span> Top Cryptocurrencies</div>
+      <div class="crypto-grid" id="crypto-grid"></div>
+    </div>
+
+    <!-- CHART ROW -->
+    <div class="chart-row reveal">
+      <!-- PRICE CHART -->
+      <div class="chart-box">
+        <div class="chart-top">
+          <div>
+            <div class="section-title" style="margin-bottom:0"><span class="live-dot"></span> Price Chart</div>
+          </div>
+          <div class="time-tabs" id="time-tabs"></div>
+        </div>
+        <div class="chart-coins" id="chart-coins" style="margin-bottom:1rem"></div>
+        <div class="chart-container" style="height:220px">
+          <canvas id="priceChart"></canvas>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <!-- MARKET OVERVIEW -->
+        <div class="chart-box" style="flex:1">
+          <div class="section-title" style="margin-bottom:1rem">Market Overview</div>
+          <div style="display:flex;flex-direction:column;gap:0.75rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem;background:var(--bg3);border-radius:8px">
+              <span style="font-size:0.82rem;color:var(--text2)">Market Cap</span>
+              <span style="font-weight:700;font-family:var(--font-display)">$2.45T</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem;background:var(--bg3);border-radius:8px">
+              <span style="font-size:0.82rem;color:var(--text2)">24h Volume</span>
+              <span style="font-weight:700;font-family:var(--font-display)">$98.70B</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem;background:var(--bg3);border-radius:8px">
+              <span style="font-size:0.82rem;color:var(--text2)">BTC Dominance</span>
+              <span style="font-weight:700;font-family:var(--font-display)">54.2%</span>
+            </div>
+            <div style="padding:0.6rem;background:var(--bg3);border-radius:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+                <span style="font-size:0.82rem;color:var(--text2)">Fear & Greed</span>
+                <span class="badge badge-completed">Greed</span>
+              </div>
+              <div class="fear-gauge">
+                <div class="gauge-val">72</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- MARKET SIGNALS -->
+        <div class="chart-box">
+          <div class="section-title" style="margin-bottom:0.75rem">⚡ Market Signals</div>
+          <div class="signal-section bull">
+            <div class="signal-title" style="color:var(--green)">↗ Bullish Signals</div>
+            <div class="signal-tags">
+              <span class="signal-tag bull-tag">BTC +2.3%</span>
+              <span class="signal-tag bull-tag">SOL +5.7%</span>
+              <span class="signal-tag bull-tag">AVAX +3.5%</span>
+              <span class="signal-tag bull-tag">MATIC +4.1%</span>
+            </div>
+          </div>
+          <div class="signal-section bear" style="margin-top:0.5rem">
+            <div class="signal-title" style="color:var(--red)">↘ Bearish Signals</div>
+            <div class="signal-tags">
+              <span class="signal-tag bear-tag">ETH -1.2%</span>
+              <span class="signal-tag bear-tag">LINK -2.6%</span>
+            </div>
+          </div>
+          <div style="margin-top:0.75rem">
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text3);margin-bottom:0.4rem">
+              <span>Overall Sentiment</span><span style="color:var(--accent)">68%</span>
+            </div>
+            <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:68%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEWS PREVIEW -->
+    <div class="reveal" style="margin-bottom:1.5rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <div class="section-title">📰 Crypto News</div>
+        <a href="news.html" style="font-size:0.82rem;color:var(--accent);text-decoration:none">Latest →</a>
+      </div>
+      <div class="news-grid" id="news-preview"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+// NAV
+document.getElementById('nav-links').innerHTML = buildNav('dashboard.html');
+document.getElementById('mobile-menu').innerHTML = buildNav('dashboard.html');
+document.getElementById('theme-dd').innerHTML = buildThemeDropdown();
+
+// STAT CARDS
+const stats = [
+  { label:'Market Cap', value:'$2.45T', change:'+3.2%', up:true, icon:'💰' },
+  { label:'24h Volume', value:'$98.70B', change:'+8.1%', up:true, icon:'📊' },
+  { label:'BTC Dominance', value:'54.2%', change:'-0.3%', up:false, icon:'⚡' },
+  { label:'Fear & Greed', value:'72', change:'Greed', up:true, icon:'🎯' },
+];
+document.getElementById('stat-cards').innerHTML = stats.map(s => `
+  <div class="card stat-card reveal">
+    <div class="stat-icon">${s.icon}</div>
+    <div class="stat-label">${s.label}</div>
+    <div class="stat-value">${s.value}</div>
+    <div class="stat-change ${s.up?'up':'down'}">${s.up?'▲':'▼'} ${s.change}</div>
+  </div>`).join('');
+
+// CRYPTO GRID
+function buildCryptoGrid(coins) {
+  document.getElementById('crypto-grid').innerHTML = coins.map(c => `
+    <div class="crypto-card">
+      <div class="crypto-header">
+        <div class="crypto-info">
+          <div class="crypto-avatar" style="background:${c.color}">${c.avatar}</div>
+          <div><div class="crypto-name">${c.name}</div><div class="crypto-sym">${c.sym}</div></div>
+        </div>
+        <span class="crypto-badge ${c.change24>=0?'badge-up':'badge-down'}">${c.change24>=0?'↗':'↘'} ${Math.abs(c.change24)}%</span>
+      </div>
+      <canvas id="spark-${c.id}" height="40" style="margin-bottom:0.5rem"></canvas>
+      <div class="crypto-price">${fmtPrice(c.price)}</div>
+      <div class="crypto-mcap">MCap ${c.mcap}</div>
+    </div>`).join('');
+  // Sparklines
+  coins.forEach(c => drawSparkline(`spark-${c.id}`, c.change24 >= 0));
+}
+
+function drawSparkline(id, positive) {
+  const el = document.getElementById(id); if (!el) return;
+  const ctx = el.getContext('2d');
+  const data = Array.from({length:20}, (_,i) => 50 + (positive?1:-1)*i*0.5 + (Math.random()-0.5)*8);
+  const color = positive ? '#22c55e' : '#ef4444';
+  const w = el.parentElement.offsetWidth - 32, h = 40;
+  el.width = w; el.height = h;
+  const min = Math.min(...data), max = Math.max(...data), range = max-min||1;
+  const pts = data.map((v,i) => [i/(data.length-1)*w, h-(v-min)/range*(h-6)-3]);
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0, positive?'rgba(34,197,94,0.3)':'rgba(239,68,68,0.3)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.beginPath(); pts.forEach(([x,y],i) => i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.beginPath(); pts.forEach(([x,y],i) => i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+const liveCoins = startLivePrices(coins => {
+  buildCryptoGrid(coins);
+  document.getElementById('ticker-wrap').innerHTML = buildTicker(coins);
+});
+buildCryptoGrid(liveCoins);
+document.getElementById('ticker-wrap').innerHTML = buildTicker(liveCoins);
+
+// PRICE CHART
+const TIMES = ['24H','7D','1M','3M','1Y'];
+let activeTime = '1M', activeCoinIds = ['btc'];
+const COIN_COLORS_MAP = { btc:'#f59e0b', eth:'#6366f1', sol:'#8b5cf6', ada:'#3b82f6', dot:'#ec4899', avax:'#ef4444' };
+const CHART_COINS = COINS.slice(0,6);
+
+document.getElementById('time-tabs').innerHTML = TIMES.map(t =>
+  `<button class="time-tab${t===activeTime?' active':''}" onclick="setTime('${t}')">${t}</button>`).join('');
+
+document.getElementById('chart-coins').innerHTML = CHART_COINS.map(c =>
+  `<button class="coin-toggle${activeCoinIds.includes(c.id)?' active':''}" onclick="toggleChartCoin('${c.id}',this)">
+    <span class="coin-dot" style="background:${COIN_COLORS_MAP[c.id]||c.color}"></span>${c.sym}
+  </button>`).join('');
+
+function genPriceData(n, base, vol) {
+  let v = base;
+  return Array.from({length:n}, () => { v += (Math.random()-0.48)*vol; return Math.max(v,base*0.7); });
+}
+
+function getLabels(t) {
+  const n = {H:24,D:7,M:30,Y:12}[t[t.length-1]] || 30;
+  if (t==='24H') return Array.from({length:24},(_,i)=>`${i}:00`);
+  if (t==='7D') return ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  if (t==='1M') { const d=new Date(); return Array.from({length:30},(_,i)=>{const dd=new Date(d);dd.setDate(d.getDate()-29+i);return `${dd.getDate()}/${dd.getMonth()+1}`;}); }
+  if (t==='3M') return Array.from({length:12},(_,i)=>`W${i+1}`);
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+}
+
+let priceChart;
+function buildPriceChart() {
+  const el = document.getElementById('priceChart');
+  if (priceChart) priceChart.destroy();
+  const labels = getLabels(activeTime);
+  const datasets = CHART_COINS.filter(c => activeCoinIds.includes(c.id)).map(c => ({
+    label: c.sym,
+    data: genPriceData(labels.length, c.price, c.price*0.02),
+    borderColor: COIN_COLORS_MAP[c.id]||c.color,
+    backgroundColor: 'transparent',
+    borderWidth: 2, pointRadius: 0, tension: 0.4,
+  }));
+  priceChart = new Chart(el, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { mode:'index', intersect:false, backgroundColor: 'rgba(0,0,0,0.8)', titleColor:'#fff', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.1)', borderWidth:1 } },
+      scales: {
+        x: { grid: { color:'rgba(255,255,255,0.04)' }, ticks: { color:'rgba(150,150,150,0.7)', font:{size:10}, maxTicksLimit:8 } },
+        y: { grid: { color:'rgba(255,255,255,0.04)' }, ticks: { color:'rgba(150,150,150,0.7)', font:{size:10}, callback: v => '$'+v.toLocaleString() } }
+      },
+      animation: { duration: 600 }
+    }
+  });
+}
+
+function setTime(t) {
+  activeTime = t;
+  document.querySelectorAll('.time-tab').forEach(el => el.classList.toggle('active', el.textContent===t));
+  buildPriceChart();
+}
+function toggleChartCoin(id, btn) {
+  const idx = activeCoinIds.indexOf(id);
+  if (idx>=0 && activeCoinIds.length>1) { activeCoinIds.splice(idx,1); btn.classList.remove('active'); }
+  else if (idx<0) { activeCoinIds.push(id); btn.classList.add('active'); }
+  buildPriceChart();
+}
+
+buildPriceChart();
+
+// NEWS PREVIEW
+document.getElementById('news-preview').innerHTML = NEWS.slice(0,4).map(n => `
+  <div class="news-card">
+    <img class="news-img" src="${n.img}" alt="news">
+    <div>
+      <span class="news-tag ${n.tagClass}">${n.tag}</span>
+      <div class="news-title">${n.title}</div>
+      <div class="news-meta">${n.time}</div>
+    </div>
+  </div>`).join('');
+
+initReveal();
+
+// ===== WELCOME AUDIO — Web Speech API (Robotic Masculine Voice) =====
+const synth = window.speechSynthesis;
+let speaking = false;
+const toast = document.getElementById('audio-toast');
+const audioSubEl = document.getElementById('audio-sub-text');
+
+// Full welcome script — split into segments for live subtitle updates
+const SCRIPT_SEGMENTS = [
+  { text: 'Welcome to Crypto Pulse.', sub: 'Welcome greeting' },
+  { text: 'Your all-in-one cryptocurrency analytics platform.', sub: 'Platform overview' },
+  { text: 'Live charts. Portfolio tracking. Market signals. News and more.', sub: 'Key features' },
+  { text: 'Track the rhythm of the crypto market.', sub: 'Tagline one' },
+  { text: 'Real-time insights. Smarter crypto decisions.', sub: 'Tagline two' },
+];
+
+function getBestVoice() {
+  const voices = synth.getVoices();
+  if (!voices.length) return null;
+  // Priority list — deep masculine robotic-sounding voices
+  const priority = [
+    'Google UK English Male',
+    'Microsoft David Desktop',
+    'Microsoft David',
+    'Alex',
+    'Daniel',
+    'Fred',
+    'Microsoft Mark',
+    'Google US English',
+  ];
+  for (const name of priority) {
+    const v = voices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
+    if (v) return v;
+  }
+  // Fallback: any English voice
+  return voices.find(v => v.lang.startsWith('en')) || voices[0] || null;
+}
+
+function showAudioToast() { toast.classList.add('show'); }
+function hideAudioToast() { toast.classList.remove('show'); }
+function stopAudio() { synth.cancel(); speaking = false; hideAudioToast(); }
+
+function speakSegments(idx) {
+  if (idx >= SCRIPT_SEGMENTS.length) {
+    // Finished
+    toast.classList.add('done');
+    audioSubEl.textContent = 'Welcome complete.';
+    setTimeout(hideAudioToast, 3000);
+    speaking = false;
+    return;
+  }
+
+  const seg = SCRIPT_SEGMENTS[idx];
+  audioSubEl.textContent = seg.sub;
+
+  const utter = new SpeechSynthesisUtterance(seg.text);
+  const voice = getBestVoice();
+  if (voice) utter.voice = voice;
+
+  // Deep robotic masculine settings
+  utter.pitch  = 0.5;   // very low pitch = deep/masculine
+  utter.rate   = 0.78;  // deliberate slow pace = robotic feel
+  utter.volume = 1.0;
+
+  utter.onend = () => {
+    setTimeout(() => speakSegments(idx + 1), 300);
+  };
+  utter.onerror = () => {
+    speakSegments(idx + 1);
+  };
+
+  synth.speak(utter);
+}
+
+function launchWelcomeAudio() {
+  if (!('speechSynthesis' in window)) return;
+  synth.cancel(); // clear queue
+  speaking = true;
+  showAudioToast();
+  toast.classList.remove('done');
+  audioSubEl.textContent = 'Loading voice engine...';
+
+  function start() {
+    speakSegments(0);
+  }
+
+  // Voices may not load instantly on some browsers
+  if (synth.getVoices().length > 0) {
+    setTimeout(start, 300);
+  } else {
+    synth.onvoiceschanged = () => { synth.onvoiceschanged = null; setTimeout(start, 200); };
+    // Fallback if event never fires
+    setTimeout(start, 1500);
+  }
+}
+
+// Auto-trigger after page loads — 1.5s delay
+window.addEventListener('load', () => {
+  setTimeout(launchWelcomeAudio, 1500);
+});
+</script>
+</body>
+</html>

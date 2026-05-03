@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transactions — Crypto Pulse</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="shared.css">
+<style>
+.tx-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.5rem; }
+.tx-stat { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:1.2rem; text-align:center; transition:all 0.3s; }
+.tx-stat:hover { border-color:var(--accent); box-shadow:0 0 20px var(--glow); }
+.tx-stat-icon { font-size:1.5rem; margin-bottom:0.4rem; }
+.tx-stat-val { font-size:1.4rem; font-weight:700; font-family:var(--font-display); color:var(--text); }
+.tx-stat-lbl { font-size:0.72rem; color:var(--text3); text-transform:uppercase; letter-spacing:0.08em; }
+.type-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; flex-shrink:0; }
+.type-buy { background:rgba(34,197,94,0.15); color:var(--green); }
+.type-sell { background:rgba(239,68,68,0.15); color:var(--red); }
+.table-wrap { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow-x:auto; }
+.filter-row { display:flex; gap:0.75rem; align-items:center; margin-bottom:1.2rem; flex-wrap:wrap; }
+@media(max-width:600px){ .tx-summary{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div></div>
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="logo.png" alt="Crypto Pulse" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Crypto Pulse</span>
+    </a>
+    <div class="nav-links" id="nav-links"></div>
+    <div class="nav-right">
+      <div class="theme-select-wrap">
+        <button class="theme-btn" onclick="toggleThemeDropdown()"><span class="theme-dot"></span> Theme ▾</button>
+        <div class="theme-dropdown" id="theme-dd"></div>
+      </div>
+      <button class="hamburger" onclick="toggleMobileMenu()"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+<div class="ticker-wrap" id="ticker-wrap" style="margin-top:64px"></div>
+
+<div class="page-wrapper">
+  <div class="main-content">
+    <div class="page-header reveal">
+      <div class="page-icon">↔</div>
+      <div><div class="page-title">Transactions</div><div class="page-sub">Your trading history</div></div>
+    </div>
+
+    <div class="tx-summary reveal">
+      <div class="tx-stat">
+        <div class="tx-stat-icon">💚</div>
+        <div class="tx-stat-val">$18,658</div>
+        <div class="tx-stat-lbl">Total Bought</div>
+      </div>
+      <div class="tx-stat">
+        <div class="tx-stat-icon">❤</div>
+        <div class="tx-stat-val">$16,205</div>
+        <div class="tx-stat-lbl">Total Sold</div>
+      </div>
+      <div class="tx-stat">
+        <div class="tx-stat-icon">🔄</div>
+        <div class="tx-stat-val">8</div>
+        <div class="tx-stat-lbl">Total Trades</div>
+      </div>
+    </div>
+
+    <div class="filter-row reveal">
+      <div class="filter-tabs" id="type-tabs">
+        <button class="filter-tab active" onclick="filterType('all',this)">All</button>
+        <button class="filter-tab" onclick="filterType('buy',this)">Buy</button>
+        <button class="filter-tab" onclick="filterType('sell',this)">Sell</button>
+      </div>
+      <div class="filter-tabs" id="status-tabs">
+        <button class="filter-tab active" onclick="filterStatus('all',this)">All Status</button>
+        <button class="filter-tab" onclick="filterStatus('completed',this)">Completed</button>
+        <button class="filter-tab" onclick="filterStatus('pending',this)">Pending</button>
+        <button class="filter-tab" onclick="filterStatus('failed',this)">Failed</button>
+      </div>
+    </div>
+
+    <div class="table-wrap reveal">
+      <table class="data-table" style="min-width:700px">
+        <thead>
+          <tr>
+            <th>Type</th><th>Asset</th><th>Amount</th><th>Price</th><th>Total</th><th>Date</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tx-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+document.getElementById('nav-links').innerHTML = buildNav('transactions.html');
+document.getElementById('mobile-menu').innerHTML = buildNav('transactions.html');
+document.getElementById('theme-dd').innerHTML = buildThemeDropdown();
+
+const liveCoins = startLivePrices(coins => { document.getElementById('ticker-wrap').innerHTML = buildTicker(coins); });
+document.getElementById('ticker-wrap').innerHTML = buildTicker(liveCoins);
+
+let activeType = 'all', activeStatus = 'all';
+
+function renderTx() {
+  let data = [...TRANSACTIONS];
+  if(activeType !== 'all') data = data.filter(t=>t.type===activeType);
+  if(activeStatus !== 'all') data = data.filter(t=>t.status===activeStatus);
+  document.getElementById('tx-tbody').innerHTML = data.map(t => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:0.5rem">
+          <div class="type-icon ${t.type==='buy'?'type-buy':'type-sell'}">${t.type==='buy'?'↙':'↗'}</div>
+          <span style="text-transform:capitalize;font-weight:600;font-size:0.85rem;color:${t.type==='buy'?'var(--green)':'var(--red)'}">${t.type}</span>
+        </div>
+      </td>
+      <td><span style="font-weight:700;color:var(--accent)">${t.asset}</span></td>
+      <td style="color:var(--text2)">${t.amount}</td>
+      <td style="font-family:var(--font-display);font-weight:600">$${t.price.toLocaleString()}</td>
+      <td style="font-weight:700;font-family:var(--font-display)">$${t.total.toLocaleString()}</td>
+      <td style="color:var(--text3);font-size:0.82rem">${t.date}</td>
+      <td>
+        <span class="badge badge-${t.status}">
+          ${t.status==='completed'?'✓':t.status==='pending'?'⏳':'✕'}
+          ${t.status.charAt(0).toUpperCase()+t.status.slice(1)}
+        </span>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:2rem">No transactions found</td></tr>`;
+}
+
+function filterType(t, el) {
+  activeType=t;
+  document.querySelectorAll('#type-tabs .filter-tab').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active'); renderTx();
+}
+function filterStatus(s, el) {
+  activeStatus=s;
+  document.querySelectorAll('#status-tabs .filter-tab').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active'); renderTx();
+}
+
+renderTx();
+initReveal();
+</script>
+</body>
+</html>
