@@ -379,41 +379,42 @@ grid.innerHTML = FEATURES.map((f,i) => `
   </div>`).join('');
 
 // ===== AUTO SCROLL + NAVIGATE =====
-const TOTAL_DURATION = 5500; // 5.5 seconds
-let startTime = null, paused = false, pausedAt = 0, elapsed = 0;
+// Linear scroll — constant speed from top to bottom over 7 seconds
+// No easing so no jump effect — strictly linear throughout
+const TOTAL_DURATION = 7000; // 7 seconds strict slow scroll
+let startTime = null, paused = false, elapsed = 0;
 const progressEl = document.getElementById('auto-progress');
-const pauseBtn = document.getElementById('pause-btn');
 const pauseIcon = document.getElementById('pause-icon');
 const pauseLabel = document.getElementById('pause-label');
 
-function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+// Strictly linear — no easing curve so no fast jump at any point
+function linearEase(t) { return t; }
 
 function autoScroll(ts) {
   if (paused) return;
   if (!startTime) startTime = ts;
   elapsed = ts - startTime;
   const progress = Math.min(elapsed / TOTAL_DURATION, 1);
-  const eased = easeInOut(progress);
 
-  // Scroll the page
+  // Strictly linear scroll — no acceleration, no jump
   const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
-  window.scrollTo(0, totalScroll * eased);
+  window.scrollTo(0, totalScroll * linearEase(progress));
 
-  // Update progress bar
+  // Update rainbow progress bar width
   progressEl.style.transform = `scaleX(${progress})`;
 
-  // Reveal feature cards progressively
-  if (progress > 0.4) {
+  // Reveal feature cards progressively as we scroll past them
+  if (progress > 0.35) {
     document.querySelectorAll('.feature-card').forEach((el, i) => {
-      if (progress > 0.4 + i * 0.04) el.classList.add('revealed');
+      if (progress > 0.35 + i * 0.035) el.classList.add('revealed');
     });
   }
 
   if (progress < 1) {
     requestAnimationFrame(autoScroll);
   } else {
-    // Navigate to dashboard
-    setTimeout(() => { window.location.href = 'dashboard.html'; }, 400);
+    // Small pause at bottom then navigate to dashboard
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
   }
 }
 
@@ -425,14 +426,14 @@ function togglePause() {
   } else {
     pauseIcon.textContent = '⏸';
     pauseLabel.textContent = 'Pause';
-    // recalculate startTime to not jump
+    // Recalculate startTime so scroll continues from where it paused
     startTime = performance.now() - elapsed;
     requestAnimationFrame(autoScroll);
   }
 }
 
-// Start auto scroll after 0.8s
-setTimeout(() => requestAnimationFrame(autoScroll), 800);
+// Start auto scroll after 1s delay (let page render first)
+setTimeout(() => requestAnimationFrame(autoScroll), 1000);
 </script>
 </body>
 </html>
